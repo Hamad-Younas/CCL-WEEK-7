@@ -31,6 +31,7 @@ enum TokenType
     T_RBRACE,
     T_SEMICOLON,
     T_GT,
+    T_LT,
     T_EOF,
     T_TRUE,
     T_FALSE,
@@ -76,13 +77,13 @@ public:
             if (isspace(current))
             {
                 if (current == '\n')
-                    line++; // Increment line on newline
+                    line++;
                 pos++;
                 continue;
             }
             if (isdigit(current))
             {
-                tokens.push_back(Token{T_NUM, consumeNumber(), line}); // Pass line number
+                tokens.push_back(Token{T_NUM, consumeNumber(), line});
                 continue;
             }
             if (isalpha(current))
@@ -104,29 +105,27 @@ public:
                     tokens.push_back(Token{T_TRUE, word, line});
                 else if (word == "false")
                     tokens.push_back(Token{T_FALSE, word, line});
-                else if (word == "while")
-                    tokens.push_back(Token{T_WHILE, word, line}); // Recognize the while keyword
-                else if (word == "if")
-                    tokens.push_back(Token{T_IF, word, line}); // Also handle if keyword
-                else if (word == "else")
-                    tokens.push_back(Token{T_ELSE, word, line}); // Also handle else keyword
-                else if (word == "return")
-                    tokens.push_back(Token{T_RETURN, word, line}); // Handle return keyword
-                // Add more keywords as needed
+                else if (word == "Agar") // Custom keyword for 'if'
+                    tokens.push_back(Token{T_IF, word, line});
+                else if (word == "warna") // Custom keyword for 'else'
+                    tokens.push_back(Token{T_ELSE, word, line});
+                else if (word == "jabtak") // Custom keyword for 'while'
+                    tokens.push_back(Token{T_WHILE, word, line});
                 else
                     tokens.push_back(Token{T_ID, word, line});
                 continue;
             }
 
+            // Handle other tokens like before
             if (current == '"')
             {
-                tokens.push_back(Token{T_STRING_LITERAL, consumeStringLiteral(), line}); // Handle string literal
+                tokens.push_back(Token{T_STRING_LITERAL, consumeStringLiteral(), line});
                 continue;
             }
 
             if (current == '\'')
             {
-                tokens.push_back(Token{T_CHAR_LITERAL, consumeCharLiteral(), line}); // Handle char literal
+                tokens.push_back(Token{T_CHAR_LITERAL, consumeCharLiteral(), line});
                 continue;
             }
 
@@ -165,6 +164,9 @@ public:
             case '>':
                 tokens.push_back(Token{T_GT, ">", line});
                 break;
+            case '<':
+                tokens.push_back(Token{T_LT, "<", line});
+                break;
             default:
                 cout << "Unexpected character: " << current << " on line " << line << endl;
                 exit(1);
@@ -173,37 +175,31 @@ public:
         }
         tokens.push_back(Token{T_EOF, "", line});
 
-        // Print all tokens after tokenization
-        for (const auto &token : tokens)
-        {
-            cout << "Token: " << tokenTypeToString(token.type) << " Value: " << token.value << " Line: " << token.line << endl;
-        }
-
         return tokens;
     }
 
     string consumeStringLiteral()
     {
-        pos++; // Skip the opening "
+        pos++;
         size_t start = pos;
         while (pos < src.size() && src[pos] != '"')
             pos++;
         string literal = src.substr(start, pos - start);
-        pos++; // Skip the closing "
+        pos++;
         return literal;
     }
 
     string consumeCharLiteral()
     {
-        pos++; // Skip the opening '
+        pos++;
         char literal = src[pos];
-        pos++; // Skip the char
+        pos++;
         if (src[pos] != '\'')
         {
             cout << "Error: Invalid char literal at line " << line << endl;
             exit(1);
         }
-        pos++; // Skip the closing '
+        pos++;
         return string(1, literal);
     }
 
@@ -217,15 +213,13 @@ public:
             if (src[pos] == '.')
             {
                 if (hasDecimalPoint)
-                    break; // Already encountered a decimal point, so stop.
+                    break;
                 hasDecimalPoint = true;
             }
             pos++;
         }
 
         string number = src.substr(start, pos - start);
-
-        // Check if the number ends with a decimal point, which is invalid.
         if (number.back() == '.')
         {
             cout << "Error: Invalid number format at line " << line << endl;
@@ -247,7 +241,7 @@ public:
     string tokenTypeToString(TokenType type)
     {
         static map<TokenType, string> tokenTypeToStr = {
-            {T_INT, "int"}, {T_FLOAT, "float"}, {T_DOUBLE, "double"}, {T_STRING, "string"}, {T_BOOL, "bool"}, {T_CHAR, "char"}, {T_ID, "identifier"}, {T_NUM, "number"}, {T_STRING_LITERAL, "string literal"}, {T_CHAR_LITERAL, "char literal"}, {T_IF, "if"}, {T_ELSE, "else"}, {T_RETURN, "return"}, {T_ASSIGN, "="}, {T_PLUS, "+"}, {T_MINUS, "-"}, {T_MUL, "*"}, {T_DIV, "/"}, {T_LPAREN, "("}, {T_RPAREN, ")"}, {T_LBRACE, "{"}, {T_RBRACE, "}"}, {T_SEMICOLON, ";"}, {T_GT, ">"}, {T_TRUE, "true"}, {T_FALSE, "false"}, {T_EOF, "end of file"}};
+            {T_INT, "int"}, {T_FLOAT, "float"}, {T_DOUBLE, "double"}, {T_STRING, "string"}, {T_BOOL, "bool"}, {T_CHAR, "char"}, {T_ID, "identifier"}, {T_NUM, "number"}, {T_STRING_LITERAL, "string literal"}, {T_CHAR_LITERAL, "char literal"}, {T_IF, "if"}, {T_ELSE, "else"}, {T_RETURN, "return"}, {T_ASSIGN, "="}, {T_PLUS, "+"}, {T_MINUS, "-"}, {T_MUL, "*"}, {T_DIV, "/"}, {T_LPAREN, "("}, {T_RPAREN, ")"}, {T_LBRACE, "{"}, {T_RBRACE, "}"}, {T_SEMICOLON, ";"}, {T_GT, ">"}, {T_LT, "<"}, {T_TRUE, "true"}, {T_FALSE, "false"}, {T_EOF, "end of file"}};
         return tokenTypeToStr[type];
     }
 };
@@ -290,7 +284,7 @@ private:
         {
             parseIfStatement();
         }
-        else if (tokens[pos].type == T_WHILE) // Check for while statement
+        else if (tokens[pos].type == T_WHILE)
         {
             parseWhileStatement();
         }
@@ -307,21 +301,25 @@ private:
 
     void parseDeclaration()
     {
-        // Handle variable declarations
-        cout << "Parsing declaration: " << tokens[pos].value << endl;
-        pos++; // Consume the type token
+        pos++;
         if (tokens[pos].type == T_ID)
         {
-            cout << "Declared variable: " << tokens[pos].value << endl;
-            pos++; // Consume the identifier token
+            pos++;
+
             if (tokens[pos].type == T_ASSIGN)
             {
-                pos++;             // Consume the assignment token
-                parseExpression(); // Parse the expression after assignment
+                pos++;
+                parseExpression();
             }
+
             if (tokens[pos].type == T_SEMICOLON)
             {
-                pos++; // Consume the semicolon
+                pos++;
+            }
+            else
+            {
+                cout << "Error: Expected semicolon after declaration." << endl;
+                exit(1);
             }
         }
         else
@@ -333,87 +331,167 @@ private:
 
     void parseAssignment()
     {
-        cout << "Parsing assignment for: " << tokens[pos].value << endl;
-        pos++; // Consume the identifier token
+        pos++;
         if (tokens[pos].type == T_ASSIGN)
         {
-            pos++; // Consume the assignment token
+            pos++;
             parseExpression();
-            if (tokens[pos].type == T_SEMICOLON)
-            {
-                pos++; // Consume the semicolon
-            }
+        }
+        if (tokens[pos].type == T_SEMICOLON)
+        {
+            pos++;
         }
         else
         {
-            cout << "Error: Expected assignment operator." << endl;
+            cout << "Error: Expected semicolon after assignment." << endl;
             exit(1);
         }
     }
 
     void parseIfStatement()
     {
-        cout << "Parsing if statement" << endl;
-        pos++; // Consume the if token
+        pos++; // consume 'if'
         if (tokens[pos].type == T_LPAREN)
         {
-            pos++;             // Consume the left parenthesis
-            parseExpression(); // Placeholder for condition
+            pos++;             // consume '('
+            parseExpression(); // parse condition
             if (tokens[pos].type == T_RPAREN)
             {
-                pos++; // Consume the right parenthesis
+                pos++; // consume ')'
                 if (tokens[pos].type == T_LBRACE)
                 {
-                    pos++; // Consume the left brace
+                    pos++; // consume '{'
                     while (tokens[pos].type != T_RBRACE)
                     {
                         parseStatement();
                     }
-                    pos++; // Consume the right brace
+                    pos++; // consume '}'
                 }
+                else
+                {
+                    cout << "Error: Expected '{' after if condition." << endl;
+                    exit(1);
+                }
+            }
+            else
+            {
+                cout << "Error: Expected ')' after if condition." << endl;
+                exit(1);
+            }
+        }
+        else
+        {
+            cout << "Error: Expected '(' after if." << endl;
+            exit(1);
+        }
+
+        // Optional else handling
+        if (tokens[pos].type == T_ELSE)
+        {
+            pos++; // consume 'else'
+            if (tokens[pos].type == T_LBRACE)
+            {
+                pos++; // consume '{'
+                while (tokens[pos].type != T_RBRACE)
+                {
+                    parseStatement();
+                }
+                pos++; // consume '}'
+            }
+            else
+            {
+                cout << "Error: Expected '{' after else." << endl;
+                exit(1);
             }
         }
     }
 
     void parseWhileStatement()
     {
-        cout << "Parsing while statement" << endl;
-        pos++; // Consume the while token
+        pos++; // consume 'while'
         if (tokens[pos].type == T_LPAREN)
         {
-            pos++;             // Consume the left parenthesis
-            parseExpression(); // Placeholder for condition
+            pos++;             // consume '('
+            parseExpression(); // parse condition
             if (tokens[pos].type == T_RPAREN)
             {
-                pos++; // Consume the right parenthesis
+                pos++; // consume ')'
                 if (tokens[pos].type == T_LBRACE)
                 {
-                    pos++; // Consume the left brace
-                    while (tokens[pos].type != T_RBRACE)
+                    pos++; // consume '{'
+                    parseStatement();
+                    if (tokens[pos].type == T_RBRACE)
                     {
-                        parseStatement();
+                        pos++; // consume '}'
                     }
-                    pos++; // Consume the right brace
+                    else
+                    {
+                        cout << "Error: Expected '}' after while statement." << endl;
+                        exit(1);
+                    }
                 }
+                else
+                {
+                    cout << "Error: Expected '{' after while condition." << endl;
+                    exit(1);
+                }
+            }
+            else
+            {
+                cout << "Error: Expected ')' after while condition." << endl;
+                exit(1);
             }
         }
     }
 
     void parseReturnStatement()
     {
-        cout << "Parsing return statement" << endl;
-        pos++; // Consume the return token
-        parseExpression();
+        pos++;             // consume 'return'
+        parseExpression(); // parse return expression
         if (tokens[pos].type == T_SEMICOLON)
         {
-            pos++; // Consume the semicolon
+            pos++;
+        }
+        else
+        {
+            cout << "Error: Expected semicolon after return statement." << endl;
+            exit(1);
         }
     }
 
     void parseExpression()
     {
-        cout << "Parsing expression: " << tokens[pos].value << endl; // Placeholder for expression parsing
-        pos++;                                                       // Move to next token as a placeholder for expression handling
+        cout << "Parsing expression starting at token: " << tokens[pos].value << endl; // Debug
+
+        if (tokens[pos].type == T_ID || tokens[pos].type == T_NUM)
+        {
+            cout << "Found identifier/number: " << tokens[pos].value << endl; // Debug
+            pos++;                                                            // consume identifier or number
+
+            if (tokens[pos].type == T_GT || tokens[pos].type == T_LT || tokens[pos].type == T_ASSIGN ||
+                tokens[pos].type == T_PLUS || tokens[pos].type == T_MINUS || tokens[pos].type == T_MUL ||
+                tokens[pos].type == T_DIV)
+            {
+                cout << "Found operator: " << tokens[pos].value << endl; // Debug
+                pos++;                                                   // consume operator
+
+                if (tokens[pos].type == T_ID || tokens[pos].type == T_NUM)
+                {
+                    cout << "Found identifier/number after operator: " << tokens[pos].value << endl; // Debug
+                    pos++;                                                                           // consume identifier or number
+                }
+                else
+                {
+                    cout << "Error: Expected identifier or number after operator." << endl;
+                    exit(1);
+                }
+            }
+        }
+        else
+        {
+            cout << "Error: Expected identifier or number in expression." << endl;
+            exit(1);
+        }
     }
 };
 

@@ -1,20 +1,6 @@
-int x;
-float y;
-double z;
-string name;
-bool flag;
-char letter;
-x = 5;
-y = 3.14;
-z = 2.718;
-name = "OpenAI";
-flag = true;
-letter = 'A';
-while(x)
-{
-    x = 8;
-}
-if(x==2)
-{
+int x = 9;
+Agar (x > 0) {
     x = 1;
+} warna {
+    x = 2;
 }
