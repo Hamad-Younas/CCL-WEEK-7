@@ -42,7 +42,11 @@ enum TokenType
     T_BREAK,
     T_CONTINUE,
     T_CONST,
-    T_VOID
+    T_VOID,
+    T_AND,        // &&
+    T_OR,         // ||
+    T_EQ,         // ==
+    T_NEQ,        // !=
 };
 
 struct Token
@@ -118,19 +122,47 @@ public:
                 continue;
             }
 
-            // Handle other tokens like before
+            // Handle string literals
             if (current == '"')
             {
                 tokens.push_back(Token{T_STRING_LITERAL, consumeStringLiteral(), line});
                 continue;
             }
 
+            // Handle character literals
             if (current == '\'')
             {
                 tokens.push_back(Token{T_CHAR_LITERAL, consumeCharLiteral(), line});
                 continue;
             }
 
+            // Handle logical and comparison operators
+            if (current == '&' && pos + 1 < src.size() && src[pos + 1] == '&')
+            {
+                tokens.push_back(Token{T_AND, "&&", line});
+                pos += 2;
+                continue;
+            }
+            if (current == '|' && pos + 1 < src.size() && src[pos + 1] == '|')
+            {
+                tokens.push_back(Token{T_OR, "||", line});
+                pos += 2;
+                continue;
+            }
+            if (current == '=' && pos + 1 < src.size() && src[pos + 1] == '=')
+            {
+                tokens.push_back(Token{T_EQ, "==", line});
+                pos += 2;
+                continue;
+            }
+            if (current == '!' && pos + 1 < src.size() && src[pos + 1] == '=')
+            {
+                tokens.push_back(Token{T_NEQ, "!=", line});
+                pos += 2;
+                continue;
+            }
+
+            // Handle other single character tokens
             switch (current)
             {
             case '=':
@@ -243,7 +275,15 @@ public:
     string tokenTypeToString(TokenType type)
     {
         static map<TokenType, string> tokenTypeToStr = {
-            {T_INT, "int"}, {T_FLOAT, "float"}, {T_DOUBLE, "double"}, {T_STRING, "string"}, {T_BOOL, "bool"}, {T_CHAR, "char"}, {T_ID, "identifier"}, {T_NUM, "number"}, {T_STRING_LITERAL, "string literal"}, {T_CHAR_LITERAL, "char literal"}, {T_IF, "if"}, {T_ELSE, "else"}, {T_RETURN, "return"}, {T_ASSIGN, "="}, {T_PLUS, "+"}, {T_MINUS, "-"}, {T_MUL, "*"}, {T_DIV, "/"}, {T_LPAREN, "("}, {T_RPAREN, ")"}, {T_LBRACE, "{"}, {T_RBRACE, "}"}, {T_SEMICOLON, ";"}, {T_GT, ">"}, {T_LT, "<"}, {T_TRUE, "true"}, {T_FALSE, "false"}, {T_EOF, "end of file"}};
+            {T_INT, "int"}, {T_FLOAT, "float"}, {T_DOUBLE, "double"}, {T_STRING, "string"},
+            {T_BOOL, "bool"}, {T_CHAR, "char"}, {T_ID, "identifier"}, {T_NUM, "number"},
+            {T_STRING_LITERAL, "string literal"}, {T_CHAR_LITERAL, "char literal"},
+            {T_IF, "if"}, {T_ELSE, "else"}, {T_RETURN, "return"}, {T_ASSIGN, "="},
+            {T_PLUS, "+"}, {T_MINUS, "-"}, {T_MUL, "*"}, {T_DIV, "/"}, {T_LPAREN, "("},
+            {T_RPAREN, ")"}, {T_LBRACE, "{"}, {T_RBRACE, "}"}, {T_SEMICOLON, ";"},
+            {T_GT, ">"}, {T_LT, "<"}, {T_TRUE, "true"}, {T_FALSE, "false"}, {T_EOF, "end of file"},
+            {T_AND, "&&"}, {T_OR, "||"}, {T_EQ, "=="}, {T_NEQ, "!="}
+        };
         return tokenTypeToStr[type];
     }
 };
