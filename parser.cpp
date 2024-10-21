@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <cctype>
+#include <fstream>
 #include <map>
 
 using namespace std;
@@ -207,8 +208,8 @@ private:
     }
 };
 
-int main() {
-    string input = R"(
+int main(int argc, char* argv[]) {
+    string input1 = R"(
         int a;
         a = 5;
         int b;
@@ -219,10 +220,24 @@ int main() {
             return 0;
         }
     )";
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
+        return 1;
+    }
+
+    std::ifstream file(argv[1], std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open the file " << argv[1] << std::endl;
+        return 1;
+    }
+
+    std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    std::string input(buffer.begin(), buffer.end());
 
     Lexer lexer(input);
-    vector<Token> tokens = lexer.tokenize();
-    
+    std::vector<Token> tokens = lexer.tokenize();
+
     Parser parser(tokens);
     parser.parseProgram();
 
