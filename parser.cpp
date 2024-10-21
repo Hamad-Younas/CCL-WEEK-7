@@ -109,8 +109,10 @@ public:
                     tokens.push_back(Token{T_IF, word, line});
                 else if (word == "warna") // Custom keyword for 'else'
                     tokens.push_back(Token{T_ELSE, word, line});
-                else if (word == "jabtak") // Custom keyword for 'while'
+                else if (word == "while")
                     tokens.push_back(Token{T_WHILE, word, line});
+                else if (word == "for")
+                    tokens.push_back(Token{T_FOR, word, line});
                 else
                     tokens.push_back(Token{T_ID, word, line});
                 continue;
@@ -288,6 +290,10 @@ private:
         {
             parseWhileStatement();
         }
+        else if (tokens[pos].type == T_FOR)
+        {
+            parseForStatement();
+        }
         else if (tokens[pos].type == T_RETURN)
         {
             parseReturnStatement();
@@ -412,23 +418,18 @@ private:
         if (tokens[pos].type == T_LPAREN)
         {
             pos++;             // consume '('
-            parseExpression(); // parse condition
+            parseExpression(); // parse the loop condition
             if (tokens[pos].type == T_RPAREN)
             {
                 pos++; // consume ')'
                 if (tokens[pos].type == T_LBRACE)
                 {
                     pos++; // consume '{'
-                    parseStatement();
-                    if (tokens[pos].type == T_RBRACE)
+                    while (tokens[pos].type != T_RBRACE)
                     {
-                        pos++; // consume '}'
+                        parseStatement(); // Parse loop body
                     }
-                    else
-                    {
-                        cout << "Error: Expected '}' after while statement." << endl;
-                        exit(1);
-                    }
+                    pos++; // consume '}'
                 }
                 else
                 {
@@ -441,6 +442,108 @@ private:
                 cout << "Error: Expected ')' after while condition." << endl;
                 exit(1);
             }
+        }
+        else
+        {
+            cout << "Error: Expected '(' after while." << endl;
+            exit(1);
+        }
+    }
+    void parseForStatement()
+    {
+        pos++; // consume 'for'
+        if (tokens[pos].type == T_LPAREN)
+        {
+            pos++; // consume '('
+
+            // 1. Parse the initialization part (either declaration or expression)
+            if (tokens[pos].type == T_INT || tokens[pos].type == T_FLOAT || tokens[pos].type == T_DOUBLE ||
+                tokens[pos].type == T_STRING || tokens[pos].type == T_BOOL || tokens[pos].type == T_CHAR ||
+                tokens[pos].type == T_VOID || tokens[pos].type == T_CONST)
+            {
+                // Handle declarations like int i = 1;
+                parseDeclaration();
+            }
+            else if (tokens[pos].type == T_ID)
+            {
+                // Handle assignment or expressions like i = 1;
+                parseAssignment();
+            }
+            else
+            {
+                cout << "Error: Invalid initialization in for loop." << endl;
+                exit(1);
+            }
+
+            // Debug message to show token after initialization
+            cout << "Parsing token after initialization: " << tokens[pos].value << endl;
+
+            // 2. Check for semicolon after initialization
+            if (tokens[pos].type == T_SEMICOLON)
+            {
+                pos++; // consume ';'
+                cout << "Semicolon found after initialization." << endl;
+            }
+            else
+            {
+                cout << "Error: Expected ';' after for initialization." << endl;
+                exit(1);
+            }
+
+            // 3. Parse the condition (required)
+            parseExpression(); // This is the loop condition
+
+            // 4. Check for second semicolon after condition
+            if (tokens[pos].type == T_SEMICOLON)
+            {
+                pos++; // consume ';'
+                cout << "Semicolon found after condition." << endl;
+            }
+            else
+            {
+                cout << "Error: Expected ';' after for loop condition." << endl;
+                exit(1);
+            }
+
+            // 5. Parse the increment part (optional)
+            if (tokens[pos].type == T_ID || tokens[pos].type == T_NUM)
+            {
+                parseExpression(); // The increment part (e.g., i = i + 1)
+            }
+
+            // 6. Check for closing parenthesis ')'
+            if (tokens[pos].type == T_RPAREN)
+            {
+                pos++; // consume ')'
+                cout << "Closing parenthesis found after for loop header." << endl;
+            }
+            else
+            {
+                cout << "Error: Expected ')' after for loop header." << endl;
+                exit(1);
+            }
+
+            // 7. Parse the loop body
+            if (tokens[pos].type == T_LBRACE)
+            {
+                pos++; // consume '{'
+                while (tokens[pos].type != T_RBRACE)
+                {
+                    parseStatement(); // Parse the body of the loop
+                }
+                pos++; // consume '}'
+                cout << "For loop body parsed successfully." << endl;
+            }
+            else
+            {
+                cout << "Error: Expected '{' after for loop header." << endl;
+                exit(1);
+            }
+        }
+        else
+        {
+            cout << "Error: Expected '(' after 'for' keyword." << endl;
+            exit(1);
         }
     }
 
