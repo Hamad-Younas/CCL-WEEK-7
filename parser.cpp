@@ -35,14 +35,20 @@ enum TokenType
     T_TRUE,
     T_FALSE,
     T_STRING_LITERAL,
-    T_CHAR_LITERAL
+    T_CHAR_LITERAL,
+    T_WHILE,
+    T_FOR,
+    T_BREAK,
+    T_CONTINUE,
+    T_CONST,
+    T_VOID
 };
 
 struct Token
 {
     TokenType type;
     string value;
-    int line; // Add line number to the Token structure
+    int line;
 };
 
 class Lexer
@@ -50,14 +56,14 @@ class Lexer
 private:
     string src;
     size_t pos;
-    int line; // Track the current line number
+    int line;
 
 public:
     Lexer(const string &src)
     {
         this->src = src;
         this->pos = 0;
-        this->line = 1; // Start at line 1
+        this->line = 1;
     }
 
     vector<Token> tokenize()
@@ -85,19 +91,28 @@ public:
                 if (word == "int")
                     tokens.push_back(Token{T_INT, word, line});
                 else if (word == "float")
-                    tokens.push_back(Token{T_FLOAT, word, line}); // Handle float
+                    tokens.push_back(Token{T_FLOAT, word, line});
                 else if (word == "double")
-                    tokens.push_back(Token{T_DOUBLE, word, line}); // Handle double
+                    tokens.push_back(Token{T_DOUBLE, word, line});
                 else if (word == "string")
-                    tokens.push_back(Token{T_STRING, word, line}); // Handle string
+                    tokens.push_back(Token{T_STRING, word, line});
                 else if (word == "bool")
-                    tokens.push_back(Token{T_BOOL, word, line}); // Handle bool
+                    tokens.push_back(Token{T_BOOL, word, line});
                 else if (word == "char")
-                    tokens.push_back(Token{T_CHAR, word, line}); // Handle char
+                    tokens.push_back(Token{T_CHAR, word, line});
                 else if (word == "true")
-                    tokens.push_back(Token{T_TRUE, word, line}); // Handle true
+                    tokens.push_back(Token{T_TRUE, word, line});
                 else if (word == "false")
-                    tokens.push_back(Token{T_FALSE, word, line}); // Handle false
+                    tokens.push_back(Token{T_FALSE, word, line});
+                else if (word == "while")
+                    tokens.push_back(Token{T_WHILE, word, line}); // Recognize the while keyword
+                else if (word == "if")
+                    tokens.push_back(Token{T_IF, word, line}); // Also handle if keyword
+                else if (word == "else")
+                    tokens.push_back(Token{T_ELSE, word, line}); // Also handle else keyword
+                else if (word == "return")
+                    tokens.push_back(Token{T_RETURN, word, line}); // Handle return keyword
+                // Add more keywords as needed
                 else
                     tokens.push_back(Token{T_ID, word, line});
                 continue;
@@ -157,6 +172,13 @@ public:
             pos++;
         }
         tokens.push_back(Token{T_EOF, "", line});
+
+        // Print all tokens after tokenization
+        for (const auto &token : tokens)
+        {
+            cout << "Token: " << tokenTypeToString(token.type) << " Value: " << token.value << " Line: " << token.line << endl;
+        }
+
         return tokens;
     }
 
@@ -218,7 +240,15 @@ public:
         size_t start = pos;
         while (pos < src.size() && isalnum(src[pos]))
             pos++;
-        return src.substr(start, pos - start);
+        string word = src.substr(start, pos - start);
+        return word;
+    }
+
+    string tokenTypeToString(TokenType type)
+    {
+        static map<TokenType, string> tokenTypeToStr = {
+            {T_INT, "int"}, {T_FLOAT, "float"}, {T_DOUBLE, "double"}, {T_STRING, "string"}, {T_BOOL, "bool"}, {T_CHAR, "char"}, {T_ID, "identifier"}, {T_NUM, "number"}, {T_STRING_LITERAL, "string literal"}, {T_CHAR_LITERAL, "char literal"}, {T_IF, "if"}, {T_ELSE, "else"}, {T_RETURN, "return"}, {T_ASSIGN, "="}, {T_PLUS, "+"}, {T_MINUS, "-"}, {T_MUL, "*"}, {T_DIV, "/"}, {T_LPAREN, "("}, {T_RPAREN, ")"}, {T_LBRACE, "{"}, {T_RBRACE, "}"}, {T_SEMICOLON, ";"}, {T_GT, ">"}, {T_TRUE, "true"}, {T_FALSE, "false"}, {T_EOF, "end of file"}};
+        return tokenTypeToStr[type];
     }
 };
 
@@ -247,7 +277,8 @@ private:
     void parseStatement()
     {
         if (tokens[pos].type == T_INT || tokens[pos].type == T_FLOAT || tokens[pos].type == T_DOUBLE ||
-            tokens[pos].type == T_STRING || tokens[pos].type == T_BOOL || tokens[pos].type == T_CHAR)
+            tokens[pos].type == T_STRING || tokens[pos].type == T_BOOL || tokens[pos].type == T_CHAR ||
+            tokens[pos].type == T_VOID || tokens[pos].type == T_CONST)
         {
             parseDeclaration();
         }
@@ -259,149 +290,135 @@ private:
         {
             parseIfStatement();
         }
+        else if (tokens[pos].type == T_WHILE) // Check for while statement
+        {
+            parseWhileStatement();
+        }
         else if (tokens[pos].type == T_RETURN)
         {
             parseReturnStatement();
         }
-        else if (tokens[pos].type == T_LBRACE)
-        {
-            parseBlock();
-        }
         else
         {
-            syntaxError("unexpected token");
+            cout << "Error: Unexpected token: " << tokens[pos].value << endl;
+            exit(1);
         }
-    }
-
-    void parseBlock()
-    {
-        expect(T_LBRACE);
-        while (tokens[pos].type != T_RBRACE && tokens[pos].type != T_EOF)
-        {
-            parseStatement();
-        }
-        expect(T_RBRACE);
     }
 
     void parseDeclaration()
     {
-        expect(tokens[pos].type); // Expect data type (int, float, etc.)
-        expect(T_ID);             // Expect identifier
-        expect(T_SEMICOLON);
+        // Handle variable declarations
+        cout << "Parsing declaration: " << tokens[pos].value << endl;
+        pos++; // Consume the type token
+        if (tokens[pos].type == T_ID)
+        {
+            cout << "Declared variable: " << tokens[pos].value << endl;
+            pos++; // Consume the identifier token
+            if (tokens[pos].type == T_ASSIGN)
+            {
+                pos++;             // Consume the assignment token
+                parseExpression(); // Parse the expression after assignment
+            }
+            if (tokens[pos].type == T_SEMICOLON)
+            {
+                pos++; // Consume the semicolon
+            }
+        }
+        else
+        {
+            cout << "Error: Expected identifier after type declaration." << endl;
+            exit(1);
+        }
     }
 
     void parseAssignment()
     {
-        expect(T_ID);
-        expect(T_ASSIGN);
-        parseExpression();
-        expect(T_SEMICOLON);
+        cout << "Parsing assignment for: " << tokens[pos].value << endl;
+        pos++; // Consume the identifier token
+        if (tokens[pos].type == T_ASSIGN)
+        {
+            pos++; // Consume the assignment token
+            parseExpression();
+            if (tokens[pos].type == T_SEMICOLON)
+            {
+                pos++; // Consume the semicolon
+            }
+        }
+        else
+        {
+            cout << "Error: Expected assignment operator." << endl;
+            exit(1);
+        }
     }
 
     void parseIfStatement()
     {
-        expect(T_IF);
-        expect(T_LPAREN);
-        parseExpression();
-        expect(T_RPAREN);
-        parseStatement();
-        if (tokens[pos].type == T_ELSE)
+        cout << "Parsing if statement" << endl;
+        pos++; // Consume the if token
+        if (tokens[pos].type == T_LPAREN)
         {
-            expect(T_ELSE);
-            parseStatement();
+            pos++;             // Consume the left parenthesis
+            parseExpression(); // Placeholder for condition
+            if (tokens[pos].type == T_RPAREN)
+            {
+                pos++; // Consume the right parenthesis
+                if (tokens[pos].type == T_LBRACE)
+                {
+                    pos++; // Consume the left brace
+                    while (tokens[pos].type != T_RBRACE)
+                    {
+                        parseStatement();
+                    }
+                    pos++; // Consume the right brace
+                }
+            }
+        }
+    }
+
+    void parseWhileStatement()
+    {
+        cout << "Parsing while statement" << endl;
+        pos++; // Consume the while token
+        if (tokens[pos].type == T_LPAREN)
+        {
+            pos++;             // Consume the left parenthesis
+            parseExpression(); // Placeholder for condition
+            if (tokens[pos].type == T_RPAREN)
+            {
+                pos++; // Consume the right parenthesis
+                if (tokens[pos].type == T_LBRACE)
+                {
+                    pos++; // Consume the left brace
+                    while (tokens[pos].type != T_RBRACE)
+                    {
+                        parseStatement();
+                    }
+                    pos++; // Consume the right brace
+                }
+            }
         }
     }
 
     void parseReturnStatement()
     {
-        expect(T_RETURN);
+        cout << "Parsing return statement" << endl;
+        pos++; // Consume the return token
         parseExpression();
-        expect(T_SEMICOLON);
+        if (tokens[pos].type == T_SEMICOLON)
+        {
+            pos++; // Consume the semicolon
+        }
     }
 
     void parseExpression()
     {
-        parseTerm();
-        while (tokens[pos].type == T_PLUS || tokens[pos].type == T_MINUS)
-        {
-            pos++;
-            parseTerm();
-        }
-        if (tokens[pos].type == T_GT)
-        {
-            pos++;
-            parseExpression();
-        }
-    }
-
-    void parseTerm()
-    {
-        parseFactor();
-        while (tokens[pos].type == T_MUL || tokens[pos].type == T_DIV)
-        {
-            pos++;
-            parseFactor();
-        }
-    }
-
-    void parseFactor()
-    {
-        if (tokens[pos].type == T_NUM || tokens[pos].type == T_ID || tokens[pos].type == T_STRING_LITERAL || tokens[pos].type == T_CHAR_LITERAL ||
-            tokens[pos].type == T_TRUE || tokens[pos].type == T_FALSE)
-        {
-            pos++;
-        }
-        else if (tokens[pos].type == T_LPAREN)
-        {
-            expect(T_LPAREN);
-            parseExpression();
-            expect(T_RPAREN);
-        }
-        else
-        {
-            syntaxError("unexpected token");
-        }
-    }
-
-    void expect(TokenType type)
-    {
-        if (tokens[pos].type == type)
-        {
-            pos++;
-        }
-        else
-        {
-            syntaxError("expected " + tokenTypeToString(type));
-        }
-    }
-
-    void syntaxError(const string &msg)
-    {
-        cout << "Syntax error: " << msg << " at line " << tokens[pos].line << endl;
-        exit(1);
-    }
-
-    string tokenTypeToString(TokenType type)
-    {
-        static map<TokenType, string> tokenTypeToStr = {
-            {T_INT, "int"}, {T_FLOAT, "float"}, {T_DOUBLE, "double"}, {T_STRING, "string"}, {T_BOOL, "bool"}, {T_CHAR, "char"}, {T_ID, "identifier"}, {T_NUM, "number"}, {T_STRING_LITERAL, "string literal"}, {T_CHAR_LITERAL, "char literal"}, {T_IF, "if"}, {T_ELSE, "else"}, {T_RETURN, "return"}, {T_ASSIGN, "="}, {T_PLUS, "+"}, {T_MINUS, "-"}, {T_MUL, "*"}, {T_DIV, "/"}, {T_LPAREN, "("}, {T_RPAREN, ")"}, {T_LBRACE, "{"}, {T_RBRACE, "}"}, {T_SEMICOLON, ";"}, {T_GT, ">"}, {T_TRUE, "true"}, {T_FALSE, "false"}, {T_EOF, "end of file"}};
-        return tokenTypeToStr[type];
+        cout << "Parsing expression: " << tokens[pos].value << endl; // Placeholder for expression parsing
+        pos++;                                                       // Move to next token as a placeholder for expression handling
     }
 };
 
 int main(int argc, char *argv[])
 {
-    string input1 = R"(
-        int a;
-        a = 5;
-        int b;
-        b = a + 10;
-        if (b > 10) {
-            return b;
-        } else {
-            return 0;
-        }
-    )";
     if (argc < 2)
     {
         std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
@@ -420,8 +437,7 @@ int main(int argc, char *argv[])
     std::string input(buffer.begin(), buffer.end());
 
     Lexer lexer(input);
-    std::vector<Token> tokens = lexer.tokenize();
-
+    vector<Token> tokens = lexer.tokenize();
     Parser parser(tokens);
     parser.parseProgram();
 

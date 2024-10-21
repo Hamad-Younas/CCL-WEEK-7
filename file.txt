@@ -10,3 +10,11 @@ z = 2.718;
 name = "OpenAI";
 flag = true;
 letter = 'A';
+while(x)
+{
+    x = 8;
+}
+if(x==2)
+{
+    x = 1;
+}
