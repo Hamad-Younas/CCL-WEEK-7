@@ -1,9 +1,12 @@
-int a;
-a = 5;
-int b;
-b = a + 10;
-if (b > 10) {
-    return b;
-} else {
-    return 0;
-} -u
+int x;
+float y;
+double z;
+string name;
+bool flag;
+char letter;
+x = 5;
+y = 3.14;
+z = 2.718;
+name = "OpenAI";
+flag = true;
+letter = 'A';
