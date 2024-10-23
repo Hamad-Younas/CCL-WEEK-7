@@ -3,6 +3,7 @@
 #include <string>
 #include <cctype>
 #include <fstream>
+#include <unordered_map> // For the symbol table
 #include <map>
 
 using namespace std;
@@ -54,6 +55,32 @@ struct Token
     TokenType type;
     string value;
     int line;
+};
+
+class SymbolTable {
+private:
+    unordered_map<string, TokenType> table;
+
+public:
+    void insert(const string& name, TokenType type) {
+        if (table.find(name) != table.end()) {
+            cout << "Error: Redeclaration of symbol '" << name << "'." << endl;
+            exit(1);
+        }
+        table[name] = type;
+    }
+
+    TokenType lookup(const string& name) {
+        if (table.find(name) == table.end()) {
+            cout << "Error: Symbol '" << name << "' not found." << endl;
+            exit(1);
+        }
+        return table[name];
+    }
+
+    bool exists(const string& name) {
+        return table.find(name) != table.end();
+    }
 };
 
 class Lexer
@@ -309,6 +336,7 @@ public:
 private:
     vector<Token> tokens;
     size_t pos;
+    SymbolTable symbolTable; // Adding the symbol table to the parser
 
     void parseStatement()
     {
@@ -345,50 +373,57 @@ private:
         }
     }
 
-    void parseDeclaration()
-    {
-        pos++;
-        if (tokens[pos].type == T_ID)
-        {
-            pos++;
+    void parseDeclaration() {
+        TokenType varType = tokens[pos].type;
+        pos++; // Move past the type keyword
+        if (tokens[pos].type == T_ID) {
+            string varName = tokens[pos].value;
+            
+            // Insert variable into symbol table
+            if (!symbolTable.exists(varName)) {
+                symbolTable.insert(varName, varType);
+            } else {
+                cout << "Error: Variable '" << varName << "' is already declared." << endl;
+                exit(1);
+            }
 
-            if (tokens[pos].type == T_ASSIGN)
-            {
+            pos++; // Move past the identifier
+
+            if (tokens[pos].type == T_ASSIGN) {
                 pos++;
                 parseExpression();
             }
 
-            if (tokens[pos].type == T_SEMICOLON)
-            {
+            if (tokens[pos].type == T_SEMICOLON) {
                 pos++;
-            }
-            else
-            {
+            } else {
                 cout << "Error: Expected semicolon after declaration." << endl;
                 exit(1);
             }
-        }
-        else
-        {
+        } else {
             cout << "Error: Expected identifier after type declaration." << endl;
             exit(1);
         }
     }
 
-    void parseAssignment()
-    {
+    void parseAssignment() {
+        string varName = tokens[pos].value;
         pos++;
-        if (tokens[pos].type == T_ASSIGN)
-        {
+
+        // Check if the variable exists in the symbol table
+        if (!symbolTable.exists(varName)) {
+            cout << "Error: Assignment to undeclared variable '" << varName << "'." << endl;
+            exit(1);
+        }
+
+        if (tokens[pos].type == T_ASSIGN) {
             pos++;
             parseExpression();
         }
-        if (tokens[pos].type == T_SEMICOLON)
-        {
+
+        if (tokens[pos].type == T_SEMICOLON) {
             pos++;
-        }
-        else
-        {
+        } else {
             cout << "Error: Expected semicolon after assignment." << endl;
             exit(1);
         }
