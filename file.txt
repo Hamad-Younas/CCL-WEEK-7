@@ -1,5 +1,17 @@
-int x;
-int y;
-if (x == 10 && y != 5) {
-    
+int a;
+a = 5;
+string s;
+float b;
+char z;
+z='g';
+s= "hamad";
+b = a + 10;
+Agar (b > 10 && a < 20) {
+    return b;
+} else {
+    return 0;
+}
+// This is a comment
+while (a < 10) {
+    a = a + 1;
 }
